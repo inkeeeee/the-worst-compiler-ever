@@ -1,0 +1,15 @@
+add_library(graph_tools INTERFACE)
+target_compile_features(graph_tools INTERFACE cxx_std_20)
+target_include_directories(graph_tools INTERFACE "${CMAKE_CURRENT_SOURCE_DIR}/include")
+
+if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+    target_compile_options(graph_tools INTERFACE -Wall -Wextra -Wpedantic)
+    if(GRAPH_ENABLE_SANITIZERS)
+        target_compile_options(graph_tools INTERFACE -fsanitize=address,undefined -fno-omit-frame-pointer)
+        target_link_options(graph_tools INTERFACE -fsanitize=address,undefined)
+    endif()
+endif()
+
+if(GRAPH_GLIBCXX_DEBUG)
+    target_compile_definitions(graph_tools INTERFACE _GLIBCXX_DEBUG)
+endif()
