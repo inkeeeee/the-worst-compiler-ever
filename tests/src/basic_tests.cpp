@@ -43,9 +43,7 @@ TEST(BasicGraph, CanSearchNodesByCondition) {
     graph.new_node(3);
     auto expected = graph.new_node(12);
     graph.new_node(7);
-    auto found = std::find_if(graph.begin(), graph.end(), [](const auto &node) {
-        return node.data() % 2 == 0;
-    });
+    auto found = std::find_if(graph.begin(), graph.end(), [](const auto &node) { return node.data() % 2 == 0; });
     EXPECT_EQ(found, expected);
 }
 
@@ -86,14 +84,17 @@ TEST(BasicDot, WritesAFile) {
     std::ifstream input(file);
     const std::string content{std::istreambuf_iterator<char>(input), {}};
     EXPECT_EQ(content, "digraph G {\n    n0 [label=\"7\"];\n}\n");
-    EXPECT_THROW(graph.write_dot(directory.path / "missing_parent" / "graph.dot",
-                                 number_label, number_label), std::ios_base::failure);
+    EXPECT_THROW(graph.write_dot(directory.path / "missing_parent" / "graph.dot", number_label, number_label),
+                 std::ios_base::failure);
 }
 
 TEST(BasicDot, LabelFailureDoesNotTruncateExistingFile) {
     temporary_directory directory;
     const auto file = directory.path / "graph.dot";
-    { std::ofstream output(file); output << "previous contents"; }
+    {
+        std::ofstream output(file);
+        output << "previous contents";
+    }
     graph_type graph;
     graph.new_node(7);
     auto bad_label = [](const int &) -> std::string { throw std::runtime_error("label failed"); };
@@ -103,4 +104,4 @@ TEST(BasicDot, LabelFailureDoesNotTruncateExistingFile) {
     EXPECT_EQ(content, "previous contents");
 }
 
-}
+} // namespace

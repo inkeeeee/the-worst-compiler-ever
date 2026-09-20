@@ -87,4 +87,4 @@ TEST_F(GraphExceptions, FailedCopyAssignmentPreservesDestinationAndIterators) {
     EXPECT_TRUE(destination.check());
 }
 
-}
+} // namespace

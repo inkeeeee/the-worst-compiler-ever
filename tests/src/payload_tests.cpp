@@ -1,6 +1,6 @@
 #include "graph.hpp"
-#include "tree.hpp"
 #include "test_helpers.hpp"
+#include "tree.hpp"
 
 #include <gtest/gtest.h>
 
@@ -22,8 +22,7 @@ static_assert(!AcceptsGraph<std::unique_ptr<int>, int>);
 static_assert(!AcceptsGraph<int, std::unique_ptr<int>>);
 static_assert(!HasData<graph::orgraph_t<void, void>::node_t>);
 static_assert(!HasData<graph::orgraph_t<void, void>::edge_t>);
-static_assert(std::is_same_v<decltype(std::declval<const graph::orgraph_t<int, int>::edge_t &>().data()),
-                             const int &>);
+static_assert(std::is_same_v<decltype(std::declval<const graph::orgraph_t<int, int>::edge_t &>().data()), const int &>);
 
 struct payload {
     int id;
@@ -129,4 +128,4 @@ TEST(GraphPayload, SupportsVoidTreeAndDetectsCycles) {
     EXPECT_TRUE(tree.check());
 }
 
-}
+} // namespace
