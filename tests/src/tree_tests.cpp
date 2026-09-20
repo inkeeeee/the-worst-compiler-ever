@@ -91,4 +91,4 @@ TEST(Tree, LongChainDoesNotUseRecursiveTraversal) {
     EXPECT_TRUE(tree.check());
 }
 
-}
+} // namespace

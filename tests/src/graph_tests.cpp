@@ -4,8 +4,8 @@
 #include <gtest/gtest.h>
 
 #include <algorithm>
-#include <set>
 #include <memory>
+#include <set>
 #include <vector>
 
 namespace {
@@ -234,4 +234,4 @@ TEST(Graph, ErasingNodeDoesNothingWhenItListsAnUnrelatedEdge) {
     EXPECT_FALSE(graph.check());
 }
 
-}
+} // namespace

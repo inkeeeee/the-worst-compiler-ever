@@ -9,14 +9,13 @@
 #include <vector>
 
 namespace tree {
-template <Copyable Tnode_data, Copyable Tedge_data>
-class tree_t : public graph::orgraph_t<Tnode_data, Tedge_data> {
+template <Copyable Tnode_data, Copyable Tedge_data> class tree_t : public graph::orgraph_t<Tnode_data, Tedge_data> {
     using base_t = graph::orgraph_t<Tnode_data, Tedge_data>;
     using node_type = typename std::iterator_traits<typename base_t::const_node_iterator>::value_type;
 
   public:
-    using typename base_t::node_iterator;
     using typename base_t::const_node_iterator;
+    using typename base_t::node_iterator;
 
     node_iterator root() noexcept { return find_root(this->begin(), this->end()); }
     const_node_iterator root() const noexcept { return find_root(this->begin(), this->end()); }
@@ -57,8 +56,7 @@ class tree_t : public graph::orgraph_t<Tnode_data, Tedge_data> {
     }
 
   private:
-    template <typename Titerator>
-    static Titerator find_root(Titerator first, Titerator last) noexcept {
+    template <typename Titerator> static Titerator find_root(Titerator first, Titerator last) noexcept {
         auto result = last;
         for (auto node = first; node != last; ++node) {
             if (node->in_begin() == node->in_end()) {
@@ -71,4 +69,4 @@ class tree_t : public graph::orgraph_t<Tnode_data, Tedge_data> {
         return result;
     }
 };
-}
+} // namespace tree

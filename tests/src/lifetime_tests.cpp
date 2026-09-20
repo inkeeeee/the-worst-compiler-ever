@@ -1,6 +1,6 @@
 #include "graph.hpp"
-#include "tree.hpp"
 #include "test_helpers.hpp"
+#include "tree.hpp"
 
 #include <gtest/gtest.h>
 
@@ -115,4 +115,4 @@ TEST(GraphLifetime, DerivedTreeCopiesAndMovesItsRootCorrectly) {
     EXPECT_EQ(copied.root(), copied.end());
 }
 
-}
+} // namespace

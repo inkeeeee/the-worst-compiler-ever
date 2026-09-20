@@ -20,9 +20,9 @@ int main() {
         graph.new_edge(1, d, e);
         graph.new_edge(6, e, b);
 
-        graph.write_dot("graph.dot",
-                        [](const std::string &name) { return name; },
-                        [](int weight) { return std::to_string(weight); });
+        graph.write_dot(
+            "graph.dot", [](const std::string &name) { return name; },
+            [](int weight) { return std::to_string(weight); });
         std::cout << "Graph saved to graph.dot\n";
     } catch (const std::exception &error) {
         std::cerr << error.what() << '\n';
