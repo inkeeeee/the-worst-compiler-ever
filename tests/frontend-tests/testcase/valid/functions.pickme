@@ -1,0 +1,20 @@
+int sum(int a, int b);
+int sum(int a, int b) {
+    return a + b;
+}
+int factorial(int n) {
+    if (n <= 1) return 1;
+    return n * factorial(n - 1);
+}
+void reset(int *value) {
+    *value = 0;
+    return;
+}
+char *first(char **strings) {
+    return strings[0];
+}
+int main(void) {
+    int value = sum(1, factorial(4));
+    reset(&value);
+    return value;
+}

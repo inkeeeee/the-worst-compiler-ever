@@ -17,14 +17,34 @@ endif()
 
 include(GoogleTest)
 
-add_executable(graph_tests
-    src/basic_tests.cpp
-    src/graph_tests.cpp
-    src/tree_tests.cpp
-    src/lifetime_tests.cpp
-    src/payload_tests.cpp
-    src/exception_tests.cpp
+add_library(common_tests_utils
+    common-tests-utils/src/test_helpers.cpp
 )
-target_include_directories(graph_tests PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/include")
-target_link_libraries(graph_tests PRIVATE graph_tools GTest::gtest_main)
+target_include_directories(common_tests_utils PUBLIC
+    "${CMAKE_CURRENT_SOURCE_DIR}/common-tests-utils/include"
+)
+target_link_libraries(common_tests_utils PUBLIC graph_tools)
+
+add_executable(graph_tests
+    tool-tests/src/basic_tests.cpp
+    tool-tests/src/graph_tests.cpp
+    tool-tests/src/tree_tests.cpp
+    tool-tests/src/lifetime_tests.cpp
+    tool-tests/src/payload_tests.cpp
+    tool-tests/src/exception_tests.cpp
+)
+target_include_directories(graph_tests PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/tool-tests/include")
+target_link_libraries(graph_tests PRIVATE graph_tools common_tests_utils GTest::gtest_main)
 gtest_discover_tests(graph_tests)
+
+add_executable(frontend_tests
+    frontend-tests/src/frontend_tests.cpp
+    common-tests-utils/src/frontend_test_helpers.cpp
+)
+target_include_directories(frontend_tests PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/frontend-tests/include")
+target_compile_definitions(frontend_tests PRIVATE
+    FRONTEND_CASES_DIR="${CMAKE_CURRENT_SOURCE_DIR}/frontend-tests/testcase"
+    FRONTEND_EXAMPLE_PATH="${PROJECT_SOURCE_DIR}/example/frontend.pickme"
+)
+target_link_libraries(frontend_tests PRIVATE frontend_lib common_tests_utils GTest::gtest_main)
+gtest_discover_tests(frontend_tests)

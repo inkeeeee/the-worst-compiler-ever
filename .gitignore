@@ -1,2 +1,5 @@
-build/
-*png
+/build*/
+/cmake-build-*/
+/compile_commands.json
+*.dot
+*.png
