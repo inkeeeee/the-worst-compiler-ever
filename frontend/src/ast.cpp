@@ -105,6 +105,7 @@ void ast_t::write_dot(std::ostream &output) const {
     if (!check()) {
         throw std::logic_error("Cannot export an invalid AST");
     }
+    // export ast to graphviz
     tree_.write_dot(
         output,
         [](const node_data_t &node) {

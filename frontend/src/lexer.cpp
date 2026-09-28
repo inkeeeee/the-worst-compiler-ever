@@ -5,7 +5,7 @@
 namespace frontend {
 lexer_t::lexer_t(std::istream &input, std::string source) : yyFlexLexer(&input), source_(std::move(source)) {}
 
-void lexer_t::advance(std::string_view text) {
+void lexer_t::advance(std::string_view text) { // detect file position
     location_.begin = location_.end;
     for (char character : text) {
         if (character == '\r') {
