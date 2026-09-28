@@ -8,46 +8,80 @@
 namespace frontend {
 std::string_view node_kind_name(node_kind_t kind) {
     switch (kind) {
-    case node_kind_t::translation_unit: return "TranslationUnit";
-    case node_kind_t::function: return "Function";
-    case node_kind_t::declaration: return "Declaration";
-    case node_kind_t::declarators: return "Declarators";
-    case node_kind_t::parameter: return "Parameter";
-    case node_kind_t::parameters: return "Parameters";
-    case node_kind_t::type: return "Type";
-    case node_kind_t::name: return "Name";
-    case node_kind_t::pointer_declarator: return "PointerDeclarator";
-    case node_kind_t::array_declarator: return "ArrayDeclarator";
-    case node_kind_t::function_declarator: return "FunctionDeclarator";
-    case node_kind_t::initializer: return "Initializer";
-    case node_kind_t::initializer_list: return "InitializerList";
-    case node_kind_t::block: return "Block";
-    case node_kind_t::empty: return "Empty";
-    case node_kind_t::if_statement: return "If";
-    case node_kind_t::while_statement: return "While";
-    case node_kind_t::for_statement: return "For";
-    case node_kind_t::return_statement: return "Return";
-    case node_kind_t::break_statement: return "Break";
-    case node_kind_t::continue_statement: return "Continue";
-    case node_kind_t::expression_statement: return "ExpressionStatement";
-    case node_kind_t::identifier: return "Identifier";
-    case node_kind_t::integer_literal: return "IntegerLiteral";
-    case node_kind_t::boolean_literal: return "BooleanLiteral";
-    case node_kind_t::character_literal: return "CharacterLiteral";
-    case node_kind_t::string_literal: return "StringLiteral";
-    case node_kind_t::unary: return "Unary";
-    case node_kind_t::binary: return "Binary";
-    case node_kind_t::assignment: return "Assignment";
-    case node_kind_t::call: return "Call";
-    case node_kind_t::arguments: return "Arguments";
-    case node_kind_t::subscript: return "Subscript";
-    case node_kind_t::postfix: return "Postfix";
+    case node_kind_t::translation_unit:
+        return "TranslationUnit";
+    case node_kind_t::function:
+        return "Function";
+    case node_kind_t::declaration:
+        return "Declaration";
+    case node_kind_t::declarators:
+        return "Declarators";
+    case node_kind_t::parameter:
+        return "Parameter";
+    case node_kind_t::parameters:
+        return "Parameters";
+    case node_kind_t::type:
+        return "Type";
+    case node_kind_t::name:
+        return "Name";
+    case node_kind_t::pointer_declarator:
+        return "PointerDeclarator";
+    case node_kind_t::array_declarator:
+        return "ArrayDeclarator";
+    case node_kind_t::function_declarator:
+        return "FunctionDeclarator";
+    case node_kind_t::initializer:
+        return "Initializer";
+    case node_kind_t::initializer_list:
+        return "InitializerList";
+    case node_kind_t::block:
+        return "Block";
+    case node_kind_t::empty:
+        return "Empty";
+    case node_kind_t::if_statement:
+        return "If";
+    case node_kind_t::while_statement:
+        return "While";
+    case node_kind_t::for_statement:
+        return "For";
+    case node_kind_t::return_statement:
+        return "Return";
+    case node_kind_t::break_statement:
+        return "Break";
+    case node_kind_t::continue_statement:
+        return "Continue";
+    case node_kind_t::expression_statement:
+        return "ExpressionStatement";
+    case node_kind_t::identifier:
+        return "Identifier";
+    case node_kind_t::integer_literal:
+        return "IntegerLiteral";
+    case node_kind_t::boolean_literal:
+        return "BooleanLiteral";
+    case node_kind_t::character_literal:
+        return "CharacterLiteral";
+    case node_kind_t::string_literal:
+        return "StringLiteral";
+    case node_kind_t::unary:
+        return "Unary";
+    case node_kind_t::binary:
+        return "Binary";
+    case node_kind_t::assignment:
+        return "Assignment";
+    case node_kind_t::call:
+        return "Call";
+    case node_kind_t::arguments:
+        return "Arguments";
+    case node_kind_t::subscript:
+        return "Subscript";
+    case node_kind_t::postfix:
+        return "Postfix";
     }
     throw std::logic_error("Unknown AST node kind");
 }
 
 ast_node_t ast_t::make(node_kind_t kind, std::string text, source_range_t range,
-                      std::initializer_list<ast_node_t> children) {
+                       std::initializer_list<ast_node_t> children) {
     auto node = tree_.new_node(node_data_t{kind, std::move(text), range});
     for (auto child : children) {
         append(node, child);
@@ -64,22 +98,24 @@ void ast_t::append(ast_node_t parent, ast_node_t child) {
 }
 
 bool ast_t::check() const {
-    return tree_.check() && tree_.root() != tree_.end() &&
-           tree_.root()->data().kind == node_kind_t::translation_unit;
+    return tree_.check() && tree_.root() != tree_.end() && tree_.root()->data().kind == node_kind_t::translation_unit;
 }
 
 void ast_t::write_dot(std::ostream &output) const {
     if (!check()) {
         throw std::logic_error("Cannot export an invalid AST");
     }
-    tree_.write_dot(output, [](const node_data_t &node) {
-        std::string label(node_kind_name(node.kind));
-        if (!node.text.empty()) {
-            label += '\n' + node.text;
-        }
-        label += '\n' + std::to_string(node.range.begin.line) + ':' + std::to_string(node.range.begin.column);
-        return label;
-    }, [](const std::string &role) { return role; });
+    tree_.write_dot(
+        output,
+        [](const node_data_t &node) {
+            std::string label(node_kind_name(node.kind));
+            if (!node.text.empty()) {
+                label += '\n' + node.text;
+            }
+            label += '\n' + std::to_string(node.range.begin.line) + ':' + std::to_string(node.range.begin.column);
+            return label;
+        },
+        [](const std::string &role) { return role; });
 }
 
 void ast_t::dump(std::ostream &output) const {
@@ -106,4 +142,4 @@ void ast_t::dump(std::ostream &output) const {
         throw std::ios_base::failure("Cannot write AST output");
     }
 }
-}
+} // namespace frontend

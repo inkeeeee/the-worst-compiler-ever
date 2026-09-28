@@ -2,7 +2,7 @@
 %x COMMENT STRING_LITERAL CHAR_LITERAL
 
 %{
-#include "lexer.hpp"
+#include "frontend/lexer.hpp"
 
 #include <string>
 #include <string_view>

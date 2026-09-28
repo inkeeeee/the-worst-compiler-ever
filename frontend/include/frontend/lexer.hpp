@@ -28,4 +28,4 @@ class lexer_t : public yyFlexLexer {
     [[noreturn]] void fail(std::string message, bool from_opening = false) const;
     void LexerError(const char *message) override;
 };
-}
+} // namespace frontend

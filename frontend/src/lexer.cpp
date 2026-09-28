@@ -1,4 +1,4 @@
-#include "lexer.hpp"
+#include "frontend/lexer.hpp"
 
 #include <utility>
 
@@ -34,4 +34,4 @@ void lexer_t::fail(std::string message, bool from_opening) const {
 void lexer_t::LexerError(const char *message) {
     throw std::runtime_error(source_ + ": scanner failure: " + message);
 }
-}
+} // namespace frontend

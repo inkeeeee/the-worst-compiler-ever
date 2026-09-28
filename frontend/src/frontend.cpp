@@ -1,6 +1,6 @@
 #include "frontend/frontend.hpp"
-#include "driver.hpp"
-#include "lexer.hpp"
+#include "frontend/driver.hpp"
+#include "frontend/lexer.hpp"
 #include "parser.hpp"
 
 #include <fstream>
@@ -37,4 +37,4 @@ ast_t parse_file(const std::filesystem::path &path) {
     std::ifstream input(path, std::ios::binary);
     return parse(input, path.string());
 }
-}
+} // namespace frontend

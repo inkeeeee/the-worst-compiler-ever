@@ -24,8 +24,8 @@
 %lex-param {frontend::lexer_t &lexer}
 
 %code {
-    #include "driver.hpp"
-    #include "lexer.hpp"
+    #include "frontend/driver.hpp"
+    #include "frontend/lexer.hpp"
     #include <utility>
     using K = frontend::node_kind_t;
     static frontend::parser_t::symbol_type yylex(frontend::lexer_t &lexer) {
