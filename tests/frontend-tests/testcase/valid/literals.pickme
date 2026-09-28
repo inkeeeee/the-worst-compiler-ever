@@ -1,0 +1,12 @@
+/* Comments may span
+   several lines and contain // or "quotes". */
+int main() {
+    // A line comment.
+    unsigned long long a = 255, b = 77, c = 123, d = 171;
+    int zero = 0;
+    char newline = '\n', slash = '\\', quote = '\'', letter = 'A', nul = '\0';
+    char *message = "// not a comment /* either */ \" \\ \a\b\f\n\r\t\v\?\0";
+    bool ok = true, fail = false;
+    int ifx = 1, while_count = 2, _name123 = 3;
+    return ifx + while_count + _name123 + (ok != fail);
+}

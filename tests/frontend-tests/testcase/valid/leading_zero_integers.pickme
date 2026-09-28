@@ -1,0 +1,7 @@
+int main() {
+    int a = 08;
+    int b = 077;
+    int c = 000123;
+    int d = 00;
+    return 09;
+}

@@ -1,0 +1,12 @@
+int add(int a, int b) { return a + b; }
+int main(int argc, char *argv[]) {
+    int table[2][2] = {{1, 2}, {3, 4}};
+    int (*row)[2] = &table[0];
+    int *rows[2] = {table[0], table[1]};
+    char **strings = argv;
+    int result = add(rows[0][0], (*row)[1]);
+    if (argc > 1) {
+        return strings[1][0];
+    }
+    return result;
+}

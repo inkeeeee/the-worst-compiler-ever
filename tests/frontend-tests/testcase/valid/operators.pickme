@@ -1,0 +1,22 @@
+int choose(int a, int b, int c) {
+    int x = a + b * c / 2 % 3 - 1;
+    x = +a + -b + ~c + !a;
+    x = (a << 2) | ((b >> 1) ^ (c & 7));
+    bool flag = a < b || b <= c && a > c;
+    flag = a >= b && a == c || b != c;
+    x += 1; x -= 2; x *= 3; x /= 4; x %= 5;
+    x <<= 1; x >>= 1; x &= 7; x ^= 3; x |= 8;
+    ++x; --x; x++; x--;
+    int *p = &x;
+    *p = 2;
+    int data[2] = {x, *p};
+    p = data;
+    (*p)++;
+    *(p + 1) = data[0];
+    x = a = b = c;
+    x = a;
+    if (flag) {
+        return data[1];
+    }
+    return x;
+}
