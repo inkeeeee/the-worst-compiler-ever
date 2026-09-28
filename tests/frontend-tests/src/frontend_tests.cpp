@@ -27,10 +27,14 @@ TEST(Frontend, ValidPrograms) {
 
 TEST(Frontend, ChecksSourceFileExtension) {
     temporary_directory directory;
-    for (const auto &[filename, accepted] : std::vector<std::pair<std::string, bool>>{
-             {"program.pickme", true}, {"module.test.pickme", true},
-             {"program.c", false}, {"program.txt", false}, {"program", false},
-             {"program.PICKME", false}, {"program.pickme.c", false}, {".pickme", false}}) {
+    for (const auto &[filename, accepted] : std::vector<std::pair<std::string, bool>>{{"program.pickme", true},
+                                                                                      {"module.test.pickme", true},
+                                                                                      {"program.c", false},
+                                                                                      {"program.txt", false},
+                                                                                      {"program", false},
+                                                                                      {"program.PICKME", false},
+                                                                                      {"program.pickme.c", false},
+                                                                                      {".pickme", false}}) {
         SCOPED_TRACE(filename);
         const auto path = directory.path / filename;
         write_text_file(path, "int main() { return 0; }");
@@ -57,8 +61,7 @@ TEST(Frontend, LexicalErrors) {
 }
 
 TEST(Frontend, SyntaxErrors) {
-    check_invalid_programs(std::filesystem::path(FRONTEND_CASES_DIR) / "syntax_errors",
-                           frontend::error_kind_t::syntax);
+    check_invalid_programs(std::filesystem::path(FRONTEND_CASES_DIR) / "syntax_errors", frontend::error_kind_t::syntax);
 }
 
 TEST(Frontend, ArithmeticPrecedenceAndLeftAssociativity) {
@@ -167,7 +170,8 @@ TEST(Frontend, ReportsPositionsWithCrLfCommentsAndEndOfFile) {
 }
 
 TEST(Frontend, PreservesLiteralSpellingAndEscapesDotOutput) {
-    const auto ast = frontend::parse_string(R"(int main() { prints("quote: \" slash: \\ newline: \n"); return '\0'; })");
+    const auto ast =
+        frontend::parse_string(R"(int main() { prints("quote: \" slash: \\ newline: \n"); return '\0'; })");
     const auto literal = only(ast, K::string_literal);
     EXPECT_EQ(literal->data().text, R"("quote: \" slash: \\ newline: \n")");
     EXPECT_EQ(only(ast, K::character_literal)->data().text, "'\\0'");
@@ -195,4 +199,4 @@ TEST(Frontend, ParsesEmptyUnitAndRejectsBrokenInputStream) {
     input.setstate(std::ios::badbit);
     EXPECT_THROW(frontend::parse(input), std::ios_base::failure);
 }
-}
+} // namespace

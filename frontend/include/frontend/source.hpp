@@ -31,4 +31,4 @@ class parse_error_t : public std::runtime_error {
     error_kind_t kind_;
     source_range_t range_;
 };
-}
+} // namespace frontend
