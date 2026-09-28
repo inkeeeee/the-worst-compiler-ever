@@ -122,6 +122,7 @@ void ast_t::dump(std::ostream &output) const {
     if (!check()) {
         throw std::logic_error("Cannot print an invalid AST");
     }
+    // print ast as padding text via stack
     using item_t = std::pair<ast_tree_t::const_node_iterator, std::size_t>;
     std::vector<item_t> pending{{tree_.root(), 0}};
     while (!pending.empty()) {
