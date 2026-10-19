@@ -20,6 +20,7 @@ add_library(frontend_lib
     src/ast.cpp
     src/frontend.cpp
     src/lexer.cpp
+    src/semantic.cpp
     src/source.cpp
     ${BISON_FrontendParser_OUTPUTS}
     ${FLEX_FrontendLexer_OUTPUTS}

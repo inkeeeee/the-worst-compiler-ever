@@ -1,6 +1,7 @@
 #pragma once
 
 #include "frontend/ast.hpp"
+#include "frontend/semantic.hpp"
 
 #include <filesystem>
 #include <istream>
