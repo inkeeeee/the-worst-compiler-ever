@@ -1,0 +1,16 @@
+int take(int *p);
+
+int main() {
+    int value = 1;
+    int value = 2;       // duplicate declaration
+    unknown = 3;         // undeclared name
+    {
+        int local = 4;
+    }
+    value = local;       // local is outside its scope
+    int *p = true;       // incompatible initializer
+    take(value);         // incompatible argument
+    value[0] = 5;        // integer cannot be indexed
+    break;               // break outside a loop
+    return;              // int function must return a value
+}

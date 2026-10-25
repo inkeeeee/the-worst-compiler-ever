@@ -48,3 +48,11 @@ target_compile_definitions(frontend_tests PRIVATE
 )
 target_link_libraries(frontend_tests PRIVATE frontend_lib common_tests_utils GTest::gtest_main)
 gtest_discover_tests(frontend_tests)
+
+add_executable(semantic_tests semantic-tests/semantic_tests.cpp)
+target_compile_definitions(semantic_tests PRIVATE
+    FRONTEND_CASES_DIR="${CMAKE_CURRENT_SOURCE_DIR}/frontend-tests/testcase"
+    FRONTEND_EXAMPLE_PATH="${PROJECT_SOURCE_DIR}/example/frontend.pickme"
+)
+target_link_libraries(semantic_tests PRIVATE frontend_lib GTest::gtest_main)
+gtest_discover_tests(semantic_tests)

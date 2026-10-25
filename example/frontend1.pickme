@@ -1,0 +1,10 @@
+
+int main(int argc, char **argv) {
+    int i = 0;
+    if (i > 1) {
+        i = 1;
+    }
+
+    i = 4;
+    return i;
+}

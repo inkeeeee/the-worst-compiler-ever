@@ -1,0 +1,21 @@
+int sum(int a, int b);
+
+int sum(int a, int b) {
+    return a + b;
+}
+
+int main() {
+    int values[] = {1, 2, 3};
+    int *p = values;
+    long total = 0;
+    for (int i = 0; i < 3; ++i) {
+        total += sum(p[i], 1);
+    }
+    {
+        char total = 'A'; // shadows the outer total in this block
+        total++;
+    }
+    bool positive = total > 0;
+    if (positive) return total;
+    return 0;
+}

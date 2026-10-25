@@ -35,6 +35,7 @@ node_t only(const frontend::ast_t &ast, frontend::node_kind_t kind) {
 
 void check_invalid_programs(const std::filesystem::path &directory, frontend::error_kind_t expected) {
     for (const auto &entry : std::filesystem::directory_iterator(directory)) {
+        if (!entry.is_regular_file() || entry.path().extension() != ".pickme") continue;
         SCOPED_TRACE(entry.path().filename().string());
         try {
             frontend::parse_file(entry.path());
