@@ -32,6 +32,8 @@ enum class node_kind_t {
     break_statement,
     continue_statement,
     expression_statement,
+    structure_specifier,
+    fields,
     identifier,
     integer_literal,
     boolean_literal,
@@ -43,13 +45,16 @@ enum class node_kind_t {
     call,
     arguments,
     subscript,
-    postfix
+    postfix,
+    member,
+    indirect_member
 };
 
 struct node_data_t {
     node_kind_t kind;
     std::string text;
     source_range_t range;
+    std::size_t id = 0;
 };
 
 using ast_tree_t = tree::tree_t<node_data_t, std::string>;
@@ -69,5 +74,6 @@ class ast_t {
 
   private:
     ast_tree_t tree_;
+    std::size_t next_id_ = 0;
 };
 } // namespace frontend

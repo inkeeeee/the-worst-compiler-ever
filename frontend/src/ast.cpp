@@ -8,6 +8,10 @@
 namespace frontend {
 std::string_view node_kind_name(node_kind_t kind) {
     switch (kind) {
+    case node_kind_t::structure_specifier: return "Struct";
+    case node_kind_t::fields: return "Fields";
+    case node_kind_t::member: return "Member";
+    case node_kind_t::indirect_member: return "IndirectMember";
     case node_kind_t::translation_unit:
         return "TranslationUnit";
     case node_kind_t::function:
@@ -82,7 +86,7 @@ std::string_view node_kind_name(node_kind_t kind) {
 
 ast_node_t ast_t::make(node_kind_t kind, std::string text, source_range_t range,
                        std::initializer_list<ast_node_t> children) {
-    auto node = tree_.new_node(node_data_t{kind, std::move(text), range});
+    auto node = tree_.new_node(node_data_t{kind, std::move(text), range, next_id_++});
     for (auto child : children) {
         append(node, child);
     }

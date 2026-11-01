@@ -56,3 +56,11 @@ target_compile_definitions(semantic_tests PRIVATE
 )
 target_link_libraries(semantic_tests PRIVATE frontend_lib GTest::gtest_main)
 gtest_discover_tests(semantic_tests)
+
+add_executable(hir_tests hir-tests/hir_tests.cpp)
+target_compile_definitions(hir_tests PRIVATE
+    FRONTEND_CASES_DIR="${CMAKE_CURRENT_SOURCE_DIR}/frontend-tests/testcase"
+    HIR_EXAMPLE_PATH="${PROJECT_SOURCE_DIR}/example/hir.pickme"
+)
+target_link_libraries(hir_tests PRIVATE hir_lib GTest::gtest_main)
+gtest_discover_tests(hir_tests)

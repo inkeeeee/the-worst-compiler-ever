@@ -8,12 +8,13 @@
 #include <ostream>
 #include <string>
 #include <vector>
+#include <unordered_map>
 
 namespace frontend {
 enum class type_kind_t {
     error, void_type, boolean, character, signed_character, unsigned_character,
     short_integer, unsigned_short, integer, unsigned_integer, long_integer,
-    unsigned_long, long_long_integer, unsigned_long_long, pointer, array, function
+    unsigned_long, long_long_integer, unsigned_long_long, pointer, array, function, structure
 };
 
 // Recursive types preserve the difference between int *a[3] and int (*a)[3].
@@ -22,6 +23,8 @@ struct semantic_type_t {
     std::shared_ptr<const semantic_type_t> element; // pointee, array element, or return type
     std::optional<std::size_t> extent;
     std::vector<semantic_type_t> parameters;
+    std::optional<std::size_t> record;
+    std::string record_name;
 
     static semantic_type_t pointer_to(semantic_type_t type);
     static semantic_type_t array_of(semantic_type_t type, std::optional<std::size_t> size);
@@ -31,6 +34,22 @@ struct semantic_type_t {
     std::string str() const;
     bool operator==(const semantic_type_t &other) const;
 };
+
+struct field_info_t {
+    std::string name;
+    semantic_type_t type;
+    source_range_t range;
+};
+
+struct structure_info_t {
+    std::size_t id;
+    std::size_t scope;
+    std::string name;
+    std::vector<field_info_t> fields;
+    bool defined = false;
+};
+
+semantic_type_t common_arithmetic_type(semantic_type_t a, semantic_type_t b);
 
 enum class symbol_kind_t { variable, parameter, function };
 enum class value_category_t { lvalue, rvalue, function };
@@ -60,6 +79,7 @@ struct expression_info_t {
     value_category_t category = value_category_t::rvalue;
     std::optional<std::size_t> symbol; // identifier binding into semantic_result_t::symbols
     std::optional<std::int64_t> constant;
+    std::optional<std::size_t> field;
 };
 
 struct semantic_diagnostic_t {
@@ -75,6 +95,15 @@ struct semantic_result_t {
     // Entries own their data and remain usable after the AST is destroyed.
     std::vector<expression_info_t> expressions;
     std::vector<semantic_diagnostic_t> diagnostics;
+    std::vector<structure_info_t> structures;
+    // Stable AST IDs survive an AST copy; no pointers into the AST escape analysis.
+    std::unordered_map<std::size_t, std::size_t> expression_nodes;
+    std::unordered_map<std::size_t, std::size_t> declared_symbols;
+    std::unordered_map<std::size_t, std::vector<std::size_t>> function_parameters;
+
+    const expression_info_t &expression(std::size_t node_id) const {
+        return expressions.at(expression_nodes.at(node_id));
+    }
 
     bool ok() const noexcept { return diagnostics.empty(); }
     void write_diagnostics(std::ostream &output) const;

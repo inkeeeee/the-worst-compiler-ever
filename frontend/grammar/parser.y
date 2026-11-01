@@ -39,6 +39,7 @@
 %token KW_LONG "long" KW_SIGNED "signed" KW_UNSIGNED "unsigned"
 %token KW_IF "if" KW_ELSE "else" KW_WHILE "while" KW_FOR "for" KW_RETURN "return"
 %token KW_BREAK "break" KW_CONTINUE "continue" KW_TRUE "true" KW_FALSE "false"
+%token KW_STRUCT "struct" DOT "." ARROW "->"
 %token LPAREN "(" RPAREN ")" LBRACE "{" RBRACE "}" LBRACKET "[" RBRACKET "]"
 %token SEMICOLON ";" COMMA ","
 %token PLUS "+" MINUS "-" STAR "*" SLASH "/" PERCENT "%"
@@ -67,6 +68,7 @@
 %type <frontend::ast_node_t> block block_items block_item statement for_init optional_expression expression
 %type <frontend::ast_node_t> assignment_expression binary_expression unary_expression
 %type <frontend::ast_node_t> postfix_expression primary_expression arguments argument_list
+%type <frontend::ast_node_t> structure_specifier field_declarations
 %type <std::string> type_name signed_type integer_type assignment_operator unary_operator
 
 %start translation_unit
@@ -85,6 +87,20 @@ external:
 
 base_type:
     type_name { $$ = driver.make(K::type, std::move($1), @$); }
+  | structure_specifier { $$ = $1; }
+;
+
+structure_specifier:
+    KW_STRUCT IDENTIFIER { $$ = driver.make(K::structure_specifier, std::move($2), @$); }
+  | KW_STRUCT IDENTIFIER LBRACE field_declarations RBRACE
+      { $$ = driver.make(K::structure_specifier, std::move($2), @$, {$4}); }
+  | KW_STRUCT LBRACE field_declarations RBRACE
+      { $$ = driver.make(K::structure_specifier, "", @$, {$3}); }
+;
+
+field_declarations:
+    %empty { $$ = driver.make(K::fields, "", @$); }
+  | field_declarations declaration { $$ = driver.append($1, $2, @$); }
 ;
 
 type_name:
@@ -115,6 +131,7 @@ integer_type:
 
 declaration:
     base_type init_declarators SEMICOLON { $$ = driver.make(K::declaration, "", @$, {$1, $2}); }
+  | base_type SEMICOLON { $$ = driver.make(K::declaration, "", @$, {$1}); }
 ;
 
 init_declarators:
@@ -272,6 +289,8 @@ unary_operator:
 
 postfix_expression:
     primary_expression { $$ = $1; }
+  | postfix_expression DOT IDENTIFIER { $$ = driver.make(K::member, std::move($3), @$, {$1}); }
+  | postfix_expression ARROW IDENTIFIER { $$ = driver.make(K::indirect_member, std::move($3), @$, {$1}); }
   | postfix_expression LBRACKET expression RBRACKET { $$ = driver.make(K::subscript, "[]", @$, {$1, $3}); }
   | postfix_expression LPAREN arguments RPAREN { $$ = driver.make(K::call, "", @$, {$1, $3}); }
   | postfix_expression INC { $$ = driver.make(K::postfix, "++", @$, {$1}); }

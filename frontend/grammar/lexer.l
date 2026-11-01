@@ -56,6 +56,9 @@ ESCAPE      \\([0abfnrtv\\\'\"?])
 <STRING_LITERAL,CHAR_LITERAL><<EOF>> { fail("unterminated literal", true); }
 
 "void"                          { TOKEN(KW_VOID); }
+"struct"                        { TOKEN(KW_STRUCT); }
+"."                             { TOKEN(DOT); }
+"->"                            { TOKEN(ARROW); }
 "bool"                          { TOKEN(KW_BOOL); }
 "char"                          { TOKEN(KW_CHAR); }
 "short"                         { TOKEN(KW_SHORT); }

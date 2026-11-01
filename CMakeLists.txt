@@ -15,6 +15,8 @@ endif()
 
 add_subdirectory(tools)
 add_subdirectory(frontend)
+add_subdirectory(hir)
+target_link_libraries(frontend PRIVATE hir_lib)
 add_subdirectory(example)
 
 include(CTest)

@@ -1,0 +1,34 @@
+struct Stats {
+    struct Node *root;
+    int sum;
+    int count;
+};
+
+struct Node {
+    struct Stats *s;
+    int value;
+    struct Node *next;
+};
+
+struct Stats collect(struct Node *node) {
+    struct Stats result = {0, 0};
+    while (node) {
+        result.sum += node->value;
+        ++result.count;
+        node = node->next;
+    }
+    return result;
+}
+
+int main() {
+    struct Node nodes[3] = {{0, 2, 0}, {0, 3, 0}, {0, 5, 0}};
+    nodes[0].next = &nodes[1];
+    nodes[1].next = &nodes[2];
+    struct Stats total = collect(nodes);
+    struct Stats saved = total;
+    saved.sum += 1;
+    if (total.count == 3 && total.sum == 10) {
+        return saved.sum;
+    }
+    return 0;
+}

@@ -5,6 +5,7 @@
 #include <limits>
 #include <stdexcept>
 #include <unordered_map>
+#include <unordered_set>
 #include <utility>
 
 namespace frontend {
@@ -20,9 +21,6 @@ bool is_error(const semantic_type_t &type) { return type.kind == T::error; }
 bool is_void(const semantic_type_t &type) { return type.kind == T::void_type; }
 bool is_object(const semantic_type_t &type) {
     return !is_error(type) && !is_void(type) && type.kind != T::function;
-}
-bool complete_object(const semantic_type_t &type) {
-    return is_object(type) && (type.kind != T::array || (type.extent && complete_object(*type.element)));
 }
 semantic_type_t decay(const semantic_type_t &type) {
     if (type.kind == T::array) return semantic_type_t::pointer_to(*type.element);
@@ -65,6 +63,7 @@ semantic_type_t arithmetic_type(semantic_type_t a, semantic_type_t b) {
 }
 bool compatible(const semantic_type_t &a, const semantic_type_t &b) {
     if (a.kind != b.kind) return false;
+    if (a.kind == T::structure) return a.record == b.record;
     if (a.kind == T::pointer) return compatible(*a.element, *b.element);
     if (a.kind == T::array)
         return compatible(*a.element, *b.element) && (!a.extent || !b.extent || a.extent == b.extent);
@@ -85,6 +84,7 @@ bool assignable(const semantic_type_t &target, const expression_info_t &value) {
     const auto from = decay(value.type);
     if (is_error(target) || is_error(from)) return true; // suppress follow-up errors
     if (target.is_integer() && from.is_integer()) return true;
+    if (target.kind == T::structure && from.kind == T::structure) return target == from;
     if (target.kind == T::boolean && from.is_scalar()) return true;
     if (target.kind == T::pointer && from.is_integer() && value.constant == 0) return true;
     return compatible_pointers(target, from);
@@ -142,10 +142,11 @@ std::optional<std::int64_t> fold(const std::string &op, std::int64_t a, std::int
 class analyzer_t {
     semantic_result_t result_;
     std::vector<std::unordered_map<std::string, std::size_t>> bindings_;
+    std::vector<std::unordered_map<std::string, std::size_t>> tags_;
+    std::unordered_set<std::size_t> defining_structures_;
     std::size_t scope_ = 0;
     std::size_t loop_depth_ = 0;
     semantic_type_t return_type_;
-    std::unordered_map<const node_data_t *, std::size_t> expression_indices_;
 
     struct declarator_t {
         node_t name;
@@ -160,6 +161,7 @@ class analyzer_t {
         const auto id = result_.scopes.size();
         result_.scopes.push_back({id, scope_, std::move(label), range});
         bindings_.emplace_back();
+        tags_.emplace_back();
         scope_ = id;
     }
     void leave_scope() { scope_ = *result_.scopes[scope_].parent; }
@@ -177,6 +179,7 @@ class analyzer_t {
         const auto found = bindings_[scope_].find(text);
         if (found != bindings_[scope_].end()) {
             const auto id = found->second;
+            result_.declared_symbols[name->data().id] = id;
             auto &previous = result_.symbols[id];
             if (kind == symbol_kind_t::function && previous.kind == kind && compatible(previous.type, type)) {
                 if (defined && previous.defined) error(name, "redefinition of function '" + text + "'");
@@ -191,9 +194,71 @@ class analyzer_t {
         const auto id = result_.symbols.size();
         bindings_[scope_].emplace(text, id);
         result_.symbols.push_back({id, scope_, text, kind, type, name->data().range, defined});
+        result_.declared_symbols[name->data().id] = id;
         return id;
     }
-    semantic_type_t base_type(node_t node) const {
+    bool complete_object(const semantic_type_t &type) const {
+        if (!is_object(type)) return false;
+        if (type.kind == T::array) return type.extent && complete_object(*type.element);
+        if (type.kind == T::structure)
+            return type.record && result_.structures.at(*type.record).defined;
+        return true;
+    }
+    semantic_type_t structure_type(node_t node, bool standalone) {
+        const auto &name = node->data().text;
+        const auto parts = children(node);
+        const bool definition = !parts.empty();
+        std::optional<std::size_t> id;
+        auto current = std::optional<std::size_t>(scope_);
+        while (current && !name.empty()) {
+            const auto found = tags_[*current].find(name);
+            if (found != tags_[*current].end()) { id = found->second; break; }
+            if (definition || standalone) break;
+            current = result_.scopes[*current].parent;
+        }
+        if (!id) {
+            id = result_.structures.size();
+            result_.structures.push_back({*id, scope_, name, {}, false});
+            if (!name.empty()) tags_[scope_][name] = *id;
+        }
+        auto type = primitive(T::structure);
+        type.record = id;
+        type.record_name = name.empty() ? "<anonymous#" + std::to_string(*id) + ">" : name;
+        if (!definition) return type;
+        if (result_.structures[*id].defined || defining_structures_.contains(*id)) {
+            error(node, "redefinition of struct '" + name + "'");
+            return type;
+        }
+        defining_structures_.insert(*id);
+        std::vector<field_info_t> fields;
+        for (auto declaration_node : children(parts[0])) {
+            const auto d = children(declaration_node);
+            const auto base = base_type(d.at(0), d.size() == 1);
+            if (d.size() == 1) {
+                if (d[0]->data().kind != K::structure_specifier) error(d[0], "field declaration has no declarator");
+                continue;
+            }
+            for (auto field : children(d[1])) {
+                if (field->data().kind == K::initializer) {
+                    error(field, "struct field cannot have an initializer");
+                    field = children(field).at(0);
+                }
+                const auto info = declarator(field, base);
+                if (!complete_object(info.type)) error(field, "struct field must have a complete object type");
+                const auto &field_name = info.name->data().text;
+                if (std::any_of(fields.begin(), fields.end(), [&](const auto &f) { return f.name == field_name; }))
+                    error(field, "duplicate struct field '" + field_name + "'");
+                fields.push_back({field_name, info.type, info.name->data().range});
+            }
+        }
+        if (fields.empty()) error(node, "struct must contain at least one field");
+        result_.structures[*id].fields = std::move(fields);
+        result_.structures[*id].defined = true;
+        defining_structures_.erase(*id);
+        return type;
+    }
+    semantic_type_t base_type(node_t node, bool standalone = false) {
+        if (node->data().kind == K::structure_specifier) return structure_type(node, standalone);
         const auto &text = node->data().text;
         if (text == "void") return primitive(T::void_type);
         if (text == "bool") return primitive(T::boolean);
@@ -250,8 +315,23 @@ class analyzer_t {
         if (!assignable(target, value))
             error(at, context + ": cannot convert " + decay(value.type).str() + " to " + target.str());
     }
+    void inspect_initializer(node_t init) {
+        if (init->data().kind == K::initializer_list)
+            for (auto item : children(init)) inspect_initializer(item);
+        else expression(init);
+    }
     semantic_type_t initialize(const semantic_type_t &type, node_t init) {
         const auto parts = children(init);
+        if (type.kind == T::structure && init->data().kind == K::initializer_list) {
+            if (!complete_object(type)) { error(init, "initializer requires a complete struct type"); return type; }
+            const auto fields = result_.structures.at(*type.record).fields;
+            if (parts.size() > fields.size()) error(init, "too many elements in struct initializer");
+            for (std::size_t i = 0; i < parts.size(); ++i) {
+                if (i < fields.size()) initialize(fields[i].type, parts[i]);
+                else inspect_initializer(parts[i]);
+            }
+            return type;
+        }
         if (type.kind == T::array) {
             if (init->data().kind == K::string_literal && type.element->kind == T::character) {
                 const auto value = expression(init);
@@ -278,7 +358,11 @@ class analyzer_t {
     }
     void declaration(node_t node) {
         const auto parts = children(node);
-        const auto base = base_type(parts.at(0));
+        const auto base = base_type(parts.at(0), parts.size() == 1);
+        if (parts.size() == 1) {
+            if (parts[0]->data().kind != K::structure_specifier) error(node, "declaration has no declarator");
+            return;
+        }
         for (auto entry : children(parts.at(1))) {
             const bool initialized = entry->data().kind == K::initializer;
             const auto entry_parts = children(entry);
@@ -296,6 +380,8 @@ class analyzer_t {
                 info.type = completed;
             }
             if (info.type.kind == T::array && !info.type.extent) error(info.name, "array bound is missing and cannot be inferred");
+            else if (!function && !is_error(info.type) && !is_void(info.type) && !complete_object(info.type))
+                error(info.name, "variable must have a complete object type");
         }
     }
     void function(node_t node) {
@@ -307,12 +393,20 @@ class analyzer_t {
         result_.scopes[scope_].label = "function " + info.name->data().text;
         result_.scopes[scope_].range = node->data().range;
         return_type_ = *info.type.element;
+        if (!is_void(return_type_) && !is_error(return_type_) && !complete_object(return_type_))
+            error(node, "function definition requires a complete return type");
+        for (const auto &symbol : result_.symbols) {
+            if (symbol.scope != scope_ || symbol.kind != symbol_kind_t::parameter) continue;
+            result_.function_parameters[node->data().id].push_back(symbol.id);
+            if (!is_error(symbol.type) && !complete_object(symbol.type))
+                error(node, "function definition requires complete parameter types");
+        }
         // Parameters and the outermost body share a scope.
         for (auto item : children(parts.at(2))) statement(item);
         leave_scope();
     }
     bool modifiable(const expression_info_t &value) const {
-        return value.category == value_category_t::lvalue && is_object(value.type) && value.type.kind != T::array;
+        return value.category == value_category_t::lvalue && complete_object(value.type) && value.type.kind != T::array;
     }
     bool pointer_arithmetic(const semantic_type_t &type) const {
         return type.kind == T::pointer && complete_object(*type.element);
@@ -344,14 +438,39 @@ class analyzer_t {
         return {};
     }
     expression_info_t expression(node_t node) {
-        const auto *key = &node->data();
-        if (const auto found = expression_indices_.find(key); found != expression_indices_.end())
+        const auto key = node->data().id;
+        if (const auto found = result_.expression_nodes.find(key); found != result_.expression_nodes.end())
             return result_.expressions[found->second];
         expression_info_t value{node->data().kind, node->data().text, node->data().range, {},
-                                value_category_t::rvalue, {}, {}};
+                                value_category_t::rvalue, {}, {}, {}};
         const auto parts = children(node);
         const auto &op = node->data().text;
         switch (node->data().kind) {
+        case K::member: case K::indirect_member: {
+            const auto base = expression(parts.at(0));
+            auto type = base.type;
+            auto category = base.category;
+            if (node->data().kind == K::indirect_member) {
+                type = decay(type);
+                if (type.kind != T::pointer) {
+                    if (!is_error(type)) error(node, "'->' requires a pointer to struct");
+                    break;
+                }
+                type = semantic_type_t(*type.element);
+                category = value_category_t::lvalue;
+            }
+            if (is_error(type)) break;
+            if (type.kind != T::structure || !complete_object(type)) {
+                error(node, "member access requires a complete struct type"); break;
+            }
+            const auto &fields = result_.structures.at(*type.record).fields;
+            const auto field = std::find_if(fields.begin(), fields.end(), [&](const auto &f) { return f.name == op; });
+            if (field == fields.end()) { error(node, "struct has no field '" + op + "'"); break; }
+            value.type = field->type;
+            value.category = category;
+            value.field = static_cast<std::size_t>(field - fields.begin());
+            break;
+        }
         case K::identifier: {
             value.symbol = lookup(op);
             if (!value.symbol) { error(node, "use of undeclared identifier '" + op + "'"); break; }
@@ -482,16 +601,21 @@ class analyzer_t {
                 error(node, "called expression is not a function"); break;
             }
             type = semantic_type_t(*type.element); // copy before releasing the owning pointer
+            if (!is_void(*type.element) && !is_error(*type.element) && !complete_object(*type.element))
+                error(node, "call requires a complete return type");
             if (type.parameters.size() != args.size()) error(node, "wrong number of arguments: expected " +
                 std::to_string(type.parameters.size()) + ", got " + std::to_string(args.size()));
-            for (std::size_t i = 0; i < std::min(args.size(), type.parameters.size()); ++i)
+            for (std::size_t i = 0; i < std::min(args.size(), type.parameters.size()); ++i) {
+                if (!is_error(type.parameters[i]) && !complete_object(type.parameters[i]))
+                    error(arg_nodes[i], "call requires complete parameter types");
                 require_assignable(arg_nodes[i], type.parameters[i], args[i], "argument " + std::to_string(i + 1));
+            }
             value.type = *type.element;
             break;
         }
         default: throw std::logic_error("Expected an expression AST node");
         }
-        expression_indices_.emplace(key, result_.expressions.size());
+        result_.expression_nodes.emplace(key, result_.expressions.size());
         result_.expressions.push_back(value);
         return value;
     }
@@ -555,6 +679,7 @@ class analyzer_t {
         result_.source = std::move(source);
         result_.scopes.push_back({0, {}, "global", ast.tree().root()->data().range});
         bindings_.emplace_back();
+        tags_.emplace_back();
         for (auto node : children(ast.tree().root())) {
             if (node->data().kind == K::function) function(node);
             else declaration(node);
@@ -563,6 +688,10 @@ class analyzer_t {
     }
 };
 } // namespace
+
+semantic_type_t common_arithmetic_type(semantic_type_t a, semantic_type_t b) {
+    return arithmetic_type(std::move(a), std::move(b));
+}
 
 semantic_type_t semantic_type_t::pointer_to(semantic_type_t type) {
     auto result = primitive(T::pointer);
@@ -584,11 +713,12 @@ semantic_type_t semantic_type_t::function_returning(semantic_type_t type, std::v
 bool semantic_type_t::is_integer() const noexcept { return rank(kind) >= 0; }
 bool semantic_type_t::is_scalar() const noexcept { return is_integer() || kind == T::pointer; }
 bool semantic_type_t::operator==(const semantic_type_t &other) const {
-    return kind == other.kind && extent == other.extent && parameters == other.parameters &&
+    return kind == other.kind && record == other.record && extent == other.extent && parameters == other.parameters &&
            ((!element && !other.element) || (element && other.element && *element == *other.element));
 }
 std::string semantic_type_t::str() const {
     switch (kind) {
+    case T::structure: return "struct " + record_name;
     case T::error: return "<error>";
     case T::void_type: return "void";
     case T::boolean: return "bool";
