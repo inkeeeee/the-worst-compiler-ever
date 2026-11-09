@@ -4,6 +4,7 @@
 
 #include <algorithm>
 #include <bit>
+#include <limits>
 #include <map>
 #include <stdexcept>
 
@@ -124,20 +125,31 @@ class hir_evaluator {
             default: {
                 auto x = scalar(b);
                 auto y = op.operands[2].kind == hir::operand_kind_t::object ? scalar(c) : 0;
-                std::int64_t r = 0;
+                const auto kind = unit.objects.at(b).type.kind;
+                const bool uns = kind == T::unsigned_character || kind == T::unsigned_short ||
+                    kind == T::unsigned_integer || kind == T::unsigned_long || kind == T::unsigned_long_long || kind == T::pointer;
+                const auto ux = static_cast<std::uint64_t>(x), uy = static_cast<std::uint64_t>(y);
+                std::uint64_t r = 0;
+                if ((op.opcode == O::divide || op.opcode == O::remainder) &&
+                    (y == 0 || (!uns && x == std::numeric_limits<std::int64_t>::min() && y == -1)))
+                    throw std::runtime_error("undefined test division");
+                if ((op.opcode == O::shift_left || op.opcode == O::shift_right) && (y < 0 || y >= 64))
+                    throw std::runtime_error("invalid test shift");
                 switch (op.opcode) {
-                case O::add: r = x + y; break; case O::subtract: r = x - y; break;
-                case O::multiply: r = x * y; break; case O::divide: r = x / y; break;
-                case O::remainder: r = x % y; break; case O::shift_left: r = x << y; break;
-                case O::shift_right: r = x >> y; break; case O::bit_and: r = x & y; break;
-                case O::bit_or: r = x | y; break; case O::bit_xor: r = x ^ y; break;
-                case O::negate: r = -x; break; case O::bit_not: r = ~x; break; case O::logical_not: r = !x; break;
+                case O::add: r = ux + uy; break; case O::subtract: r = ux - uy; break;
+                case O::multiply: r = ux * uy; break; case O::divide: r = uns ? ux / uy : static_cast<std::uint64_t>(x / y); break;
+                case O::remainder: r = uns ? ux % uy : static_cast<std::uint64_t>(x % y); break;
+                case O::shift_left: r = ux << y; break;
+                case O::shift_right: r = uns ? ux >> y : static_cast<std::uint64_t>(x >> y); break;
+                case O::bit_and: r = ux & uy; break;
+                case O::bit_or: r = ux | uy; break; case O::bit_xor: r = ux ^ uy; break;
+                case O::negate: r = std::uint64_t{0} - ux; break; case O::bit_not: r = ~ux; break; case O::logical_not: r = !x; break;
                 case O::equal: r = x == y; break; case O::not_equal: r = x != y; break;
-                case O::less: r = x < y; break; case O::less_equal: r = x <= y; break;
-                case O::greater: r = x > y; break; case O::greater_equal: r = x >= y; break;
+                case O::less: r = uns ? ux < uy : x < y; break; case O::less_equal: r = uns ? ux <= uy : x <= y; break;
+                case O::greater: r = uns ? ux > uy : x > y; break; case O::greater_equal: r = uns ? ux >= uy : x >= y; break;
                 default: throw std::runtime_error("unknown test opcode");
                 }
-                put(a, {convert(r, unit.objects.at(a).type)});
+                put(a, {convert(std::bit_cast<std::int64_t>(r), unit.objects.at(a).type)});
             }
             }
         }

@@ -117,10 +117,14 @@ class lowerer_t {
         strings_[node->data().id] = id;
         return id;
     }
-    id_t place(node_t node) {
+    id_t place(node_t node, bool address_taken = false) {
         auto parts = children(node);
         switch (node->data().kind) {
-        case K::identifier: return address(symbol_object(*info(node).symbol));
+        case K::identifier: {
+            const auto id = symbol_object(*info(node).symbol);
+            unit_.objects[id].address_taken |= address_taken;
+            return address(id);
+        }
         case K::string_literal: return address(string_object(node));
         case K::unary:
             if (node->data().text == "*") return expression(parts[0]);
@@ -135,7 +139,7 @@ class lowerer_t {
         case K::member: case K::indirect_member: {
             id_t base;
             if (node->data().kind == K::indirect_member) base = expression(parts[0]);
-            else if (info(parts[0]).category == frontend::value_category_t::lvalue) base = place(parts[0]);
+            else if (info(parts[0]).category == frontend::value_category_t::lvalue) base = place(parts[0], address_taken);
             else base = address(expression(parts[0])); // materialize a returned/copied struct
             return field_address(base, *info(node).field);
         }
@@ -233,7 +237,7 @@ class lowerer_t {
             return result;
         }
         case K::unary: case K::postfix: {
-            if (op == "&") return place(parts[0]);
+            if (op == "&") return place(parts[0], true);
             if (op == "*") return read_place(node);
             if (op == "++" || op == "--") {
                 auto pointer = place(parts[0]);

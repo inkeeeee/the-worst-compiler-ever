@@ -1,4 +1,5 @@
 #include "evaluator.hpp"
+#include "../lir-tests/evaluator.hpp"
 #include "frontend/frontend.hpp"
 #include "hir/hir.hpp"
 
@@ -99,6 +100,9 @@ TEST_P(HirExecution, ExecutesGeneratedOperations) {
     const auto &c = GetParam();
     const auto u = compile(c.source);
     EXPECT_EQ(hir_evaluator(u).run(), c.expected);
+    const auto low = lir::lower(u);
+    for (const auto &error : lir::verify(low)) ADD_FAILURE() << error.message;
+    EXPECT_EQ(lir_evaluator(low).run(), c.expected);
 }
 INSTANTIATE_TEST_SUITE_P(
     Programs, HirExecution,

@@ -1,11 +1,9 @@
 struct Stats {
-    struct Node *root;
     int sum;
     int count;
 };
 
 struct Node {
-    struct Stats *s;
     int value;
     struct Node *next;
 };
@@ -21,7 +19,7 @@ struct Stats collect(struct Node *node) {
 }
 
 int main() {
-    struct Node nodes[3] = {{0, 2, 0}, {0, 3, 0}, {0, 5, 0}};
+    struct Node nodes[3] = {{2, 0}, {3, 0}, {5, 0}};
     nodes[0].next = &nodes[1];
     nodes[1].next = &nodes[2];
     struct Stats total = collect(nodes);

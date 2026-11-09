@@ -1,5 +1,6 @@
 #include "frontend/frontend.hpp"
 #include "hir/hir.hpp"
+#include "lir/lir.hpp"
 
 #include <fstream>
 #include <iostream>
@@ -12,15 +13,18 @@ int main(int argc, char **argv) {
     bool show_symbols = false;
     bool show_types = false;
     bool show_hir = false;
+    bool show_lir = false;
     std::string cfg_path;
+    std::string lir_cfg_path;
     for (int i = 1; i < argc; ++i) {
         const std::string argument = argv[i];
         if (argument == "--help" || argument == "-h") {
-            std::cout << "Usage: frontend [--check] [--symbols] [--types] [--hir] [--cfg CFG.dot] [-o AST.dot] SOURCE.pickme\n"
-                         "Semantic analysis and HIR validation run by default.\n"
+            std::cout << "Usage: frontend [--check] [--symbols] [--types] [--hir] [--lir] [--cfg CFG.dot] [--lir-cfg LIR.dot] [-o AST.dot] SOURCE.pickme\n"
+                         "Semantic analysis, HIR and LIR validation run by default.\n"
                          "--check: validate without printing the AST.\n"
                          "--symbols: print scopes and bindings; --types: print every expression type.\n";
             std::cout << "--hir: print verified HIR; --cfg: write the control-flow graphs as DOT.\n";
+            std::cout << "--lir: print verified LIR; --lir-cfg: write its control-flow graphs as DOT.\n";
             return 0;
         }
         if (argument == "--check") {
@@ -31,6 +35,10 @@ int main(int argc, char **argv) {
             show_types = true;
         } else if (argument == "--hir") {
             show_hir = true;
+        } else if (argument == "--lir") {
+            show_lir = true;
+        } else if (argument == "--lir-cfg" && i + 1 < argc && lir_cfg_path.empty()) {
+            lir_cfg_path = argv[++i];
         } else if (argument == "--cfg" && i + 1 < argc && cfg_path.empty()) {
             cfg_path = argv[++i];
         } else if (argument == "-o" && i + 1 < argc && output_path.empty()) {
@@ -43,7 +51,7 @@ int main(int argc, char **argv) {
         }
     }
     if (input_path.empty()) {
-        std::cerr << "Usage: frontend [--check] [--symbols] [--types] [--hir] [--cfg CFG.dot] [-o AST.dot] SOURCE.pickme\n";
+        std::cerr << "Usage: frontend [--check] [--symbols] [--types] [--hir] [--lir] [--cfg CFG.dot] [--lir-cfg LIR.dot] [-o AST.dot] SOURCE.pickme\n";
         return 2;
     }
     try {
@@ -67,6 +75,25 @@ int main(int argc, char **argv) {
             return 1;
         }
         if (show_hir) hir::write(ir, std::cout);
+        const auto low = lir::lower(ir);
+        const auto low_diagnostics = lir::verify(low);
+        if (!low_diagnostics.empty()) {
+            for (const auto &diagnostic : low_diagnostics) {
+                std::cerr << "LIR error";
+                if (diagnostic.function) std::cerr << " in function #" << *diagnostic.function;
+                if (diagnostic.operation) std::cerr << " at operation #" << *diagnostic.operation;
+                std::cerr << ": " << diagnostic.message << '\n';
+            }
+            return 1;
+        }
+        if (show_lir) lir::write(low, std::cout);
+        if (!lir_cfg_path.empty()) {
+            std::ofstream output(lir_cfg_path);
+            if (!output) throw std::ios_base::failure("Cannot open LIR CFG output: " + lir_cfg_path);
+            lir::write_cfg_dot(low, output);
+            output.close();
+            if (!output) throw std::ios_base::failure("Cannot save LIR CFG output: " + lir_cfg_path);
+        }
         if (!cfg_path.empty()) {
             std::ofstream output(cfg_path);
             if (!output) throw std::ios_base::failure("Cannot open CFG output: " + cfg_path);
@@ -84,7 +111,7 @@ int main(int argc, char **argv) {
             if (!output) {
                 throw std::ios_base::failure("Cannot save output: " + output_path);
             }
-        } else if (!check_only && !show_symbols && !show_types && !show_hir && cfg_path.empty()) {
+        } else if (!check_only && !show_symbols && !show_types && !show_hir && !show_lir && cfg_path.empty() && lir_cfg_path.empty()) {
             ast.dump(std::cout);
         }
     } catch (const frontend::parse_error_t &error) {

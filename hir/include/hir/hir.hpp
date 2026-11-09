@@ -23,6 +23,7 @@ struct object_t {
     storage_t storage;
     std::optional<id_t> owner; // function index for locals, parameters and temporaries
     std::optional<id_t> initializer; // constant index for static storage
+    bool address_taken = false; // explicit source-level &, not routine HIR loads/stores
 };
 struct constant_t;
 // Members are ordered by array index or struct field; omitted trailing members

@@ -62,5 +62,13 @@ target_compile_definitions(hir_tests PRIVATE
     FRONTEND_CASES_DIR="${CMAKE_CURRENT_SOURCE_DIR}/frontend-tests/testcase"
     HIR_EXAMPLE_PATH="${PROJECT_SOURCE_DIR}/example/hir.pickme"
 )
-target_link_libraries(hir_tests PRIVATE hir_lib GTest::gtest_main)
+target_link_libraries(hir_tests PRIVATE lir_lib GTest::gtest_main)
 gtest_discover_tests(hir_tests)
+
+add_executable(lir_tests lir-tests/lir_tests.cpp)
+target_compile_definitions(lir_tests PRIVATE
+    FRONTEND_CASES_DIR="${CMAKE_CURRENT_SOURCE_DIR}/frontend-tests/testcase"
+    HIR_EXAMPLE_PATH="${PROJECT_SOURCE_DIR}/example/hir.pickme"
+)
+target_link_libraries(lir_tests PRIVATE lir_lib GTest::gtest_main)
+gtest_discover_tests(lir_tests NO_PRETTY_VALUES)
