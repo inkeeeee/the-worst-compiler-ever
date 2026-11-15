@@ -140,6 +140,16 @@ TEST(Frontend, DistinguishesCallArguments) {
     EXPECT_EQ(args.at(1)->data().text, "b");
 }
 
+TEST(Frontend, FunctionPointersRemainObjectsRatherThanFunctionDefinitions) {
+    const auto ast = frontend::parse_string("int (*f)(int x); int (*table[2])(int x); int *g(int x);");
+    const auto declarations = children(ast.tree().root());
+    ASSERT_EQ(declarations.size(), 3U);
+    const auto pointer = children(children(declarations[0]).at(1)).at(0);
+    EXPECT_EQ(pointer->data().kind, K::function_declarator);
+    EXPECT_EQ(children(pointer).at(0)->data().kind, K::pointer_declarator);
+    EXPECT_THROW(frontend::parse_string("int (*f)(int x) { return x; }"), frontend::parse_error_t);
+}
+
 TEST(Frontend, ForKeepsFourOrderedChildren) {
     const auto ast = frontend::parse_string("int main() { for (;;) break; }");
     const auto parts = children(only(ast, K::for_statement));

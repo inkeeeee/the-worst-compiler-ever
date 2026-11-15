@@ -140,7 +140,7 @@ class lowerer_t {
     }
     id_t add_symbol(std::string name, bool function) {
         const auto id = unit_.symbols.size();
-        unit_.symbols.push_back({std::move(name), function});
+        unit_.symbols.push_back({std::move(name), function, {}});
         return id;
     }
     id_t constant_symbol(id_t constant) {
@@ -432,6 +432,7 @@ class lowerer_t {
             if (object.owner) continue;
             const bool function = object.storage == hir::storage_t::function;
             const auto symbol = add_symbol(object.name + "." + std::to_string(i), function);
+            if (function) unit_.symbols[symbol].signature = object.type;
             symbols_[i] = symbol;
             if (function) continue;
             const auto info = measure(object.type);

@@ -17,8 +17,14 @@ add_subdirectory(tools)
 add_subdirectory(frontend)
 add_subdirectory(hir)
 add_subdirectory(lir)
-target_link_libraries(frontend PRIVATE lir_lib)
+add_subdirectory(codegen)
+target_link_libraries(frontend PRIVATE codegen_lib)
 add_subdirectory(example)
+
+add_custom_target(chibicc
+    COMMAND bash "${PROJECT_SOURCE_DIR}/scripts/build_chibicc.sh"
+    USES_TERMINAL
+)
 
 include(CTest)
 if(BUILD_TESTING)

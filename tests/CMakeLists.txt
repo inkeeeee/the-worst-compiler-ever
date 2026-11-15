@@ -72,3 +72,15 @@ target_compile_definitions(lir_tests PRIVATE
 )
 target_link_libraries(lir_tests PRIVATE lir_lib GTest::gtest_main)
 gtest_discover_tests(lir_tests NO_PRETTY_VALUES)
+
+find_package(Python3 REQUIRED COMPONENTS Interpreter)
+set(CHIBICC_EXECUTABLE "${PROJECT_SOURCE_DIR}/third_party/chibicc/chibicc" CACHE FILEPATH
+    "chibicc used to compile generated C in execution tests")
+add_test(NAME Codegen.ChibiccExecution
+    COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/codegen-tests/execution.py"
+        --frontend $<TARGET_FILE:frontend>
+        --cc "${CHIBICC_EXECUTABLE}"
+        --runtime "${PROJECT_SOURCE_DIR}/runtime"
+        --examples "${PROJECT_SOURCE_DIR}/example"
+)
+set_tests_properties(Codegen.ChibiccExecution PROPERTIES TIMEOUT 180)

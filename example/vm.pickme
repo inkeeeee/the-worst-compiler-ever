@@ -1,0 +1,33 @@
+void *malloc(unsigned long size);
+void free(void *pointer);
+long write(int fd, void *buffer, unsigned long count);
+int open(char *filename, int mode);
+int close(int fd);
+
+int fib(int n) {
+    if (n < 2) return n;
+    return fib(n - 1) + fib(n - 2);
+}
+
+int main(int argc, char **argv) {
+    if (argc < 1 || argv[0][0] == 0) return 1;
+    int (*calculate)(int n) = fib;
+    if (calculate(10) != 55) return 2;
+    
+    char *name = malloc(2);
+    name[0] = 'f';
+    name[1] = '\0';
+    int fd = open(name, 102);
+    char *message = malloc(5);
+    if (!message) return 3;
+    message[0] = 'O';
+    message[1] = 'K';
+    message[2] = '\n';
+    message[3] = calculate(10);
+    message[4] = '\n';
+    long written = write(fd, message, 5);
+    free(message);
+    free(name);
+    close(fd);
+    return written != 5;
+}

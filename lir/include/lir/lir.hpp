@@ -76,6 +76,8 @@ struct operation_t {
 struct symbol_t {
     std::string name;
     bool function = false;
+    // Retained for entry-point and host-library ABI adapters in the C backend.
+    std::optional<hir::type_t> signature;
 };
 struct data_value_t {
     std::uint64_t offset;

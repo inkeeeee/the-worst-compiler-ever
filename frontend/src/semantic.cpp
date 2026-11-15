@@ -304,7 +304,9 @@ class analyzer_t {
             }
             leave_scope();
             auto info = declarator(parts[0], semantic_type_t::function_returning(std::move(type), std::move(types)));
-            info.parameter_scope = parameter_scope;
+            // For a function returning a function pointer, keep the parameter
+            // scope of the function nearest the declared name.
+            if (!info.parameter_scope) info.parameter_scope = parameter_scope;
             return info;
         }
         default: throw std::logic_error("Invalid declarator node");

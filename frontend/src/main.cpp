@@ -1,9 +1,11 @@
+#include "codegen/codegen.hpp"
 #include "frontend/frontend.hpp"
 #include "hir/hir.hpp"
 #include "lir/lir.hpp"
 
 #include <fstream>
 #include <iostream>
+#include <sstream>
 #include <string>
 
 int main(int argc, char **argv) {
@@ -14,17 +16,20 @@ int main(int argc, char **argv) {
     bool show_types = false;
     bool show_hir = false;
     bool show_lir = false;
+    std::string c_path;
     std::string cfg_path;
     std::string lir_cfg_path;
     for (int i = 1; i < argc; ++i) {
         const std::string argument = argv[i];
         if (argument == "--help" || argument == "-h") {
-            std::cout << "Usage: frontend [--check] [--symbols] [--types] [--hir] [--lir] [--cfg CFG.dot] [--lir-cfg LIR.dot] [-o AST.dot] SOURCE.pickme\n"
+            std::cout << "Usage: frontend [--check] [--symbols] [--types] [--hir] [--lir] [--cfg CFG.dot] [--lir-cfg "
+                         "LIR.dot] [--emit-c FILE] [-o AST.dot] SOURCE.pickme\n"
                          "Semantic analysis, HIR and LIR validation run by default.\n"
                          "--check: validate without printing the AST.\n"
                          "--symbols: print scopes and bindings; --types: print every expression type.\n";
             std::cout << "--hir: print verified HIR; --cfg: write the control-flow graphs as DOT.\n";
             std::cout << "--lir: print verified LIR; --lir-cfg: write its control-flow graphs as DOT.\n";
+            std::cout << "--emit-c FILE: generate C for runtime/vm.h (use - for stdout).\n";
             return 0;
         }
         if (argument == "--check") {
@@ -37,6 +42,8 @@ int main(int argc, char **argv) {
             show_hir = true;
         } else if (argument == "--lir") {
             show_lir = true;
+        } else if (argument == "--emit-c" && i + 1 < argc && c_path.empty()) {
+            c_path = argv[++i];
         } else if (argument == "--lir-cfg" && i + 1 < argc && lir_cfg_path.empty()) {
             lir_cfg_path = argv[++i];
         } else if (argument == "--cfg" && i + 1 < argc && cfg_path.empty()) {
@@ -51,7 +58,8 @@ int main(int argc, char **argv) {
         }
     }
     if (input_path.empty()) {
-        std::cerr << "Usage: frontend [--check] [--symbols] [--types] [--hir] [--lir] [--cfg CFG.dot] [--lir-cfg LIR.dot] [-o AST.dot] SOURCE.pickme\n";
+        std::cerr << "Usage: frontend [--check] [--symbols] [--types] [--hir] [--lir] [--cfg CFG.dot] [--lir-cfg "
+                     "LIR.dot] [--emit-c FILE] [-o AST.dot] SOURCE.pickme\n";
         return 2;
     }
     try {
@@ -87,6 +95,19 @@ int main(int argc, char **argv) {
             return 1;
         }
         if (show_lir) lir::write(low, std::cout);
+        if (!c_path.empty()) {
+            std::ostringstream code;
+            codegen::write_c(low, code);
+            if (c_path == "-") {
+                std::cout << code.str();
+            } else {
+                std::ofstream output(c_path);
+                if (!output) throw std::ios_base::failure("Cannot open C output: " + c_path);
+                output << code.str();
+                output.close();
+                if (!output) throw std::ios_base::failure("Cannot save C output: " + c_path);
+            }
+        }
         if (!lir_cfg_path.empty()) {
             std::ofstream output(lir_cfg_path);
             if (!output) throw std::ios_base::failure("Cannot open LIR CFG output: " + lir_cfg_path);
@@ -111,7 +132,8 @@ int main(int argc, char **argv) {
             if (!output) {
                 throw std::ios_base::failure("Cannot save output: " + output_path);
             }
-        } else if (!check_only && !show_symbols && !show_types && !show_hir && !show_lir && cfg_path.empty() && lir_cfg_path.empty()) {
+        } else if (!check_only && !show_symbols && !show_types && !show_hir && !show_lir && cfg_path.empty() &&
+                   lir_cfg_path.empty() && c_path.empty()) {
             ast.dump(std::cout);
         }
     } catch (const frontend::parse_error_t &error) {

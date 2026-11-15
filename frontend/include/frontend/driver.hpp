@@ -22,9 +22,8 @@ struct driver_t {
     }
 
     ast_node_t function_declarator(ast_node_t base, ast_node_t parameters, source_range_t range) {
-        if (base->data().kind != node_kind_t::name) {
-            throw parse_error_t(error_kind_t::syntax, source, range, "invalid function declarator");
-        }
+        // Parenthesized pointer declarators, e.g. int (*f)(int x), are valid.
+        // Semantic analysis checks invalid function/array combinations.
         return make(node_kind_t::function_declarator, "()", range, {base, parameters});
     }
 
